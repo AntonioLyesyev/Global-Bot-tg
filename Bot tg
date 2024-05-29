@@ -33,11 +33,10 @@ def main():
     choice = input("Inserisci 1 o 2: ")
     
     if choice == '1':
-        get_weather_forecast()
+        get_weather()
     elif choice == '2':
         get_latest_news()
     else:
         print("Scelta non valida. Riprova.")
 
-# Esegui la funzione main direttamente
 main()
