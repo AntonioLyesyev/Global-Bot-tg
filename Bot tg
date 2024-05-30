@@ -1,8 +1,8 @@
 import requests
 from pprint import pprint
 
-WEATHER_API_KEY = ''  # Inserisci qui il tuo API key per OpenWeatherMap
-NEWS_API_KEY = ''        # Inserisci qui il tuo API key per NewsAPI
+WEATHER_API_KEY = '...'  # Inserisci qui il tuo API key per OpenWeatherMap
+NEWS_API_KEY = '...'        # Inserisci qui il tuo API key per NewsAPI
 
 def get_weather():
     city = input("Inserisci una citta': ")
