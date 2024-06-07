@@ -1,152 +1,105 @@
+#eseguire pip install python-telegram-bot 
+#eseguire pip install requests
 import requests
 from datetime import datetime
-from pprint import pprint
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 
-
-
-
-BOT_API_KEY = ''         #inserisci qui l'API/TOKEN del tuo bot telegram
-bot_username = '@'       #inserisci qui l'username del tuo bot
-WEATHER_API_KEY = ''     # Inserisci qui il tuo API key per OpenWeatherMap
-NEWS_API_KEY = ''        # Inserisci qui il tuo API key per NewsAPI
-DICTIONARY_API_KEY = ''  # Inserisci qui il tuo API key per API Ninjas
-DEEPL_API_KEY = ''       #Inserisci qui il tuo API per DEELP
-
-
-
+BOT_API_KEY = ''  # Inserisci qui l'API/TOKEN del tuo bot Telegram
+bot_username = ''  # Inserisci qui l'username del tuo bot
+WEATHER_API_KEY = ''  # Inserisci qui il tuo API key per OpenWeatherMap
+NEWS_API_KEY = ''  # Inserisci qui il tuo API key per NewsAPI
 
 #comandi
-async def start_command(update, context):
-    await update.message.reply_text('ciao prova bot start')
-    
-async def help_command(update, context):
-    await update.message.reply_text('ciao prova help')
-    
-async def custom_command(update, context):
-    await update.message.reply_text('ciao prova custom')
-    
-    
-    
-    
-#risposte
-
-def handle_response(text) -> str:
-    processed=text.lower()
-    if 'hello' in processed:
-      return 'hey'
-    if 'come va' in processed:
-      return 'ahoy'
-
-
-
-
-#message handler group o private
-async def handle_message(update, context):
-    message_type=update.message.chat.type
-    text=update.message.text
-    
-    print(f'User({update.message.chat.id})in {message_type}: {text}')
-    
-    if message_type == 'group':
-        if bot_username in text:
-            new_text=text.replace(bot_username,'').strip()
-            response=handle_response(new_text)
-        else:
-            return
-    else:
-        response=handle_response(text)
-        
-    print('Bot', response)
-    await update.message.reply_text(response)
-
-
-
-
-#errore
-async def error(update, context):
-    print(f'Update {update} caused error {context.error}')
-    
-    
-    
-    
-#funzione start che fortnisce il messaggio con le opzioni
-async def start(update, context):
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("Informazioni meteo", callback_data='opzione1')],
         [InlineKeyboardButton("News", callback_data='opzione2')],
-        [InlineKeyboardButton("Dizionario", callback_data='opzione3')],
-        [InlineKeyboardButton("Opzione 4", callback_data='opzione4')],
+        [InlineKeyboardButton("Dizionario(x)", callback_data='opzione3')],
+        [InlineKeyboardButton("Traduttore(x)", callback_data='opzione4')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text('Scegli un\'opzione:', reply_markup=reply_markup)
-    
-    
-    
+#funzionalita comandi
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text('Per iniziare ad usare GlobalBot scrivere /start e cliccare l\'opzione desiderata')
+    await update.message.reply_text('Per vedere cosa fa ogni comando di GlobalBot scrivere /comandi')
+async def description_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text('Meteo: Fornisce le previsioni e le statistiche meteo per la giornata attuale nella città desiderata')
+    await update.message.reply_text('News: Fornisce titolo, descrizione, data di pubblicazione, link e provenienza delle notizie dello stato selezionato')
+    await update.message.reply_text('Dizionario: Fornisce le definizioni di una parola prese da un enciclopedia(in fase di sviluppo)')
+    await update.message.reply_text('Traduttore: fornisce la traduzione della parola fornita nella lingua desiderata(in fase di sviluppo)')
+async def credit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text('Crediti bot: ANTONIO LYESYEV')
+
+#risposte
+def handle_response(text) -> str:
+    processed = text.lower()
+    if 'hello' in processed:
+        return 'Hey!'
+    if 'come va' in processed:
+        return 'Tutto bene, grazie!'
+    return 'Non ho capito.'
+
+#handler messaggi grouppo o privato
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message_type = update.message.chat.type
+    text = update.message.text
+
+    print(f'User({update.message.chat.id}) in {message_type}: {text}')
+
+    if context.user_data.get('waiting_for_news_city'):
+        await handle_news_city(update, context)
+        return
+
+    if context.user_data.get('waiting_for_weather_city'):
+        await handle_weather_city(update, context)
+        return
+
+    response = handle_response(text)
+
+    print('Bot:', response)
+    await update.message.reply_text(response)
+
+#errore
+async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print(f'Update {update} caused error {context.error}')
+
 #funzioni alla pressione
-async def opzione1(update, context):
+async def opzione1(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
-    await update.callback_query.message.reply_text("Inserisci il nome della città:")
-    context.user_data['waiting_for_city'] = True
+    await update.callback_query.message.reply_text("Inserisci la città di cui vorresti ricevere le informazioni meteo:")
+    context.user_data['waiting_for_weather_city'] = True
 
-async def opzione2(update, context):
-    result = 'opzione 2'
+async def opzione2(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
-    await update.callback_query.message.reply_text(result)
+    await update.callback_query.message.reply_text("Inserisci lo stato di cui vorresti ricevere le news in formato breve (es. it per l'italia, us per gli Stati Uniti):")
+    context.user_data['waiting_for_news_city'] = True
 
-async def opzione3(update, context):
+async def opzione3(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = 'opzione 3'
     await update.callback_query.answer()
     await update.callback_query.message.reply_text(result)
 
-async def opzione4(update, context):
+async def opzione4(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = 'opzione 4'
     await update.callback_query.answer()
     await update.callback_query.message.reply_text(result)
-    
-    
-    
-    
-#manage della città  
-async def handle_city(update, context):
-    message_type = update.message.chat.type
-    text = update.message.text
-    
-    print(f'User({update.message.chat.id}) in {message_type}: {text}')
-    
-    if context.user_data.get('waiting_for_city'):
-        if text:
-            city = text
-            result = get_weather(city)
-            await update.message.reply_text(result)
-            del context.user_data['waiting_for_city']
-        else:
-            await update.message.reply_text("Il nome della città non può essere vuoto. Riprova.")
-        return
-    
-    if message_type == 'group':
-        if bot_username in text:
-            new_text = text.replace(bot_username,'').strip()
-            response = handle_response(new_text)
-        else:
-            return
-    else:
-        response = handle_response(text)
-        
-    print('Bot', response)
-    await update.message.reply_text(response)
 
+#gestione della città per il meteo
+async def handle_weather_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    city = update.message.text
+    result = get_weather(city)
+    await update.message.reply_text(result)
+    del context.user_data['waiting_for_weather_city']
 
-
-    
-#informazioni meteo 
+#informazioni meteo
 def get_weather(city):
     base_url = f"http://api.openweathermap.org/data/2.5/weather?appid={WEATHER_API_KEY}&q={city}&units=metric&lang=it"
-    
+
     try:
         weather_data = requests.get(base_url).json()
-        
+
         if weather_data.get('cod') != 200:
             return f"Errore: {weather_data.get('message')}"
         else:
@@ -165,33 +118,63 @@ def get_weather(city):
             return result
     except Exception as e:
         return f"Si è verificato un errore: {e}"
-    
 
-    
-    
-#main
-   
+#gestione della città per le news
+async def handle_news_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    city = update.message.text
+    country = city 
+    result = get_latest_news(city, country)
+
+    #divisione messaggio se è troppo lungo
+    chunk_size = 4000  # limiti tlegram 4096 caratteri
+    for i in range(0, len(result), chunk_size):
+        await update.message.reply_text(result[i:i + chunk_size])
+
+    del context.user_data['waiting_for_news_city']
+
+#ultime notizie
+def get_latest_news(city, country):
+    base_url = f"https://newsapi.org/v2/top-headlines?country={country}&q={city}&apiKey={NEWS_API_KEY}"
+
+    news_data = requests.get(base_url).json()
+
+    if news_data.get('status') != 'ok':
+        print(f"Errore: {news_data.get('message')}")
+        return "Errore nel recupero delle notizie"
+    else:
+        news_list = []
+        for news in news_data['articles']:
+            published_at = datetime.strptime(news['publishedAt'], '%Y-%m-%dT%H:%M:%SZ')
+            formatted_published_at = published_at.strftime("%Y/%m/%d %H:%M")
+            news_item = f"Titolo: {news['title']}\n" \
+                        f"URL: {news['url']}\n" \
+                        f"Contenuto: {news['content']}\n" \
+                        f"Descrizione: {news['description']}\n" \
+                        f"Data di pubblicazione: {formatted_published_at}\n" \
+                        f"Fonte: {news['source']['name']}\n\n"
+            news_list.append(news_item)
+        return ''.join(news_list)
+
 if __name__ == '__main__':
     print('Starting bot...')
     app = Application.builder().token(BOT_API_KEY).build()
-    
-    # Funzioni / e funzioni pulsante
-    app.add_handler(CommandHandler('start', start))
+
+    #funzioni / e funzioni pulsante
+    app.add_handler(CommandHandler('start', start_command))
     app.add_handler(CommandHandler('help', help_command))
-    app.add_handler(CommandHandler('custom', custom_command))
+    app.add_handler(CommandHandler('description', description_command))
+    app.add_handler(CommandHandler('crediti', credit_command))
     app.add_handler(CallbackQueryHandler(opzione1, pattern='^opzione1$'))
     app.add_handler(CallbackQueryHandler(opzione2, pattern='^opzione2$'))
     app.add_handler(CallbackQueryHandler(opzione3, pattern='^opzione3$'))
     app.add_handler(CallbackQueryHandler(opzione4, pattern='^opzione4$'))
-    
+
     #gestione messaggi
-    app.add_handler(MessageHandler(None, handle_city))
-    app.add_handler(MessageHandler(filters.TEXT, handle_message))
-    
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
     #gestione errori
     app.add_error_handler(error)
 
-    #polling(frequenza di aggiornamento cotrollo messaggi )
+    #polling (frequenza di aggiornamento controllo messaggi)
     print('Polling...')
     app.run_polling(poll_interval=5)
-        
